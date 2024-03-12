@@ -29,6 +29,10 @@ zero2 n1 n2 = ((0, 0), (n1 - 1, n2 - 1))
 zero3 :: Int -> Int -> Int -> ((Int, Int, Int), (Int, Int, Int))
 zero3 n1 n2 n3 = ((0, 0, 0), (n1 - 1, n2 - 1, n3 - 1))
 
+{-# INLINE addMod' #-}
+addMod' :: Int -> Int -> Int -> Int
+addMod' !modulo !x !a = (x + a) `mod` modulo
+
 main :: IO ()
 main = do
   (!nTimes, !r) <- ints2
@@ -37,10 +41,10 @@ main = do
   let {-# INLINE f #-}
       f sofar (!set, !from, !to) = case popCount set of
         _ | not (testBit set from) || not (testBit set to) -> 0 :: Int
-        _ -> U.sum $ U.map g bits
+        _ -> U.foldl' (addMod' myMod) (0 :: Int) $ U.map g bits
           where
             {-# INLINE bits #-}
-            bits = U.filter (testBit set) $ U.generate r id
+            bits = U.filter (\via -> testBit set via && (from == via || gr @! (from, via))) $ U.generate r id
             {-# INLINE g #-}
             g via | via == to = 1
                   | otherwise = sofar @! (clearBit set from, via, to)
@@ -50,8 +54,8 @@ main = do
   let !_ = dbg transite
 
   let !set0 = bit r - 1
-  let !mat1 = listArray @UArray (zero2 r r) [transite @! (set0, from, to) `mod` myMod | from <- [0 .. r - 1], to <- [0 .. r - 1]]
-  let !mats = V.iterateN 63 (\mat -> mulMat mat mat) mat1
+  let !mat1 = listArray @UArray (zero2 r r) [transite @! (set0, from, to) | from <- [0 .. r - 1], to <- [0 .. r - 1]]
+  let !mats = V.iterateN 63 (\mat -> mulMatMod myMod mat mat) mat1
 
   let !resMat = U.foldl' (\acc iMat -> mulMatMod myMod acc (mats V.! iMat)) (unitMat r) $ U.filter (testBit nTimes) $ U.generate 63 id
 
