@@ -28,13 +28,13 @@ denseU' maxW = U.foldl' step
     step sofar (!dw, !dv) = U.imap f sofar
       where
         f :: Int -> Int -> Int
-        f w0 v0 = max v0 $ maybe 0 (dv +) (sofar U.!? (w0 - dw))
+        f w0 v0 = max v0 $ maybe minBound (dv +) (sofar U.!? (w0 - dw))
 
 solve :: Int -> Int -> [U.Vector (Int, Int)] -> V.Vector (U.Vector Int)
 solve w c wvss = foldl' step s0 wvss
   where
     !front = U.generate (w + 1) $ bool minBound (0 :: Int) . (== 0)
-    !s0 = V.cons front $ V.replicate c (U.replicate w minBound)
+    !s0 = V.cons front $ V.replicate c (U.replicate (w + 1) minBound)
     step !acc !wvs = V.cons front $ V.zipWith (f wvs) acc (V.tail acc)
     f !wvs !vec0 !vec1 = U.zipWith max (denseU' w vec0 wvs) vec1
 
